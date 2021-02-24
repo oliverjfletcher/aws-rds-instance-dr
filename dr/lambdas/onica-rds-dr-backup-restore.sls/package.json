@@ -1,0 +1,20 @@
+{
+  "name": "onica-rds-dr-backup-restore.sls",
+  "version": "1.0.0",
+  "main": "onica-rds-dr-backup-restore.sls/handler.py",
+  "dependencies": {
+    "serverless": "^2.22.0",
+    "serverless-plugin-aws-alerts": "^1.6.1",
+    "serverless-plugin-include-dependencies": "^4.1.0",
+    "serverless-python-requirements": "^5.1.0"
+  },
+  "devDependencies": {
+    "serverless": "^2.22.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

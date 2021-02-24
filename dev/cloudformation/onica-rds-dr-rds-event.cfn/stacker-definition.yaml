@@ -1,0 +1,17 @@
+namespace: ${namespace}
+stacker_bucket: ${namespace}-${region}
+region: ${region}
+
+sys_path: ./
+
+tags:
+  Department: ${department}
+  Description: ${description}
+  Environment: ${environment}
+  Workload: ${workload}
+
+stacks:
+  - name: ${namespace}-rds-event-${environment}
+    template_path: cloudformation/rds-event.yaml
+    variables:
+      DBInstances: ${dbinstances}

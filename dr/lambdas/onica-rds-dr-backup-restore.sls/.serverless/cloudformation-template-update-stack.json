@@ -1,0 +1,207 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "RDSDRBackupRestoreLambdaLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/onica-rds-dr-backup-restore"
+      }
+    },
+    "RDSDRBackupRestoreLambdaLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/onica-rds-dr-backup-restore/dr/1612686389880-2021-02-07T08:26:29.880Z/onica-rds-dr-backup-restore.zip"
+        },
+        "Handler": "handler.lambda_handler",
+        "Runtime": "python3.7",
+        "FunctionName": "onica-rds-dr-backup-restore",
+        "MemorySize": 512,
+        "Timeout": 120,
+        "Description": "This function restores an RDS instance snapshot to a new RDS instance in a DR region",
+        "Tags": [
+          {
+            "Key": "Department",
+            "Value": "elastic-engineering"
+          },
+          {
+            "Key": "Description",
+            "Value": "rds-backup-restore-lambda"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Workload",
+            "Value": "onica-rds-dr-solution"
+          }
+        ],
+        "Environment": {
+          "Variables": {
+            "lambda_region": "us-east-2",
+            "rds_instance": "",
+            "rds_instance_type": "",
+            "rds_subnet_group": ""
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "RDSDRBackupRestoreRole",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "RDSDRBackupRestoreLambdaLogGroup",
+        "RDSDRBackupRestoreRole"
+      ]
+    },
+    "RDSDRBackupRestoreLambdaLambdaVersiontZTT7uYHYSVUP6yRcRi4xKZn4YydNFFEjuRIkaoO9M": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "RDSDRBackupRestoreLambdaLambdaFunction"
+        },
+        "CodeSha256": "i2AbOBLIcTuj8CP2OdzmbXmcJSVbpqvBx0qK9OlUPJs=",
+        "Description": "This function restores an RDS instance snapshot to a new RDS instance in a DR region"
+      }
+    },
+    "RDSDRBackupRestoreRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "onica-rds-dr-backup-restore",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "customPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "rds:AddTagsToResource",
+                    "rds:RestoreDBInstanceFromDBSnapshot",
+                    "rds:Describe*",
+                    "rds:ListTagsForResource"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      }
+    },
+    "RDSDRBackupRestoreLambdaLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "RDSDRBackupRestoreLambdaLambdaVersiontZTT7uYHYSVUP6yRcRi4xKZn4YydNFFEjuRIkaoO9M"
+      }
+    }
+  }
+}

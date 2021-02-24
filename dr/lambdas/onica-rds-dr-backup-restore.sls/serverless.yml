@@ -1,0 +1,62 @@
+service: onica-rds-dr-backup-restore
+provider:
+  name: aws
+  runtime: python3.7
+  role: RDSDRBackupRestoreRole
+  timeout: 120
+  memorySize: 512
+  tags:
+    Department: elastic-engineering
+    Description: rds-backup-restore-lambda
+    Environment: dev
+    Workload: onica-rds-dr-solution
+plugins:
+  - serverless-plugin-include-dependencies
+  - serverless-python-requirements
+
+package:
+  exclude:
+    - a/**
+
+functions:
+  RDSDRBackupRestoreLambda:
+    handler: handler.lambda_handler
+    name: onica-rds-dr-backup-restore
+    description: This function restores an RDS instance snapshot to a new RDS instance in a DR region
+    environment:
+      lambda_region: us-east-2
+      rds_instance: usw2ddb000,usw2ddb001,usw2ddb002
+      rds_instance_type: ""
+      rds_subnet_group: ""
+resources:
+  Resources:
+    RDSDRBackupRestoreRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: onica-rds-dr-backup-restore
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: customPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "arn:aws:logs:*:*:*"
+                - Effect: Allow
+                  Action:
+                    - rds:AddTagsToResource
+                    - rds:RestoreDBInstanceFromDBSnapshot
+                    - rds:Describe*
+                    - rds:ListTagsForResource
+                  Resource: "*"

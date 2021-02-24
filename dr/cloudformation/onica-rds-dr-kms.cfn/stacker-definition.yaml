@@ -1,0 +1,19 @@
+namespace: ${namespace}
+stacker_bucket: ${namespace}-${region}
+region: ${region}
+
+sys_path: ./
+
+tags:
+  Department: ${department}
+  Description: ${description}
+  Environment: ${environment}
+  Workload: ${workload}
+
+stacks:
+  - name: ${namespace}-kms-${environment}
+    template_path: cloudformation/kms.yaml
+    variables:
+      KMSIAMRole0: ${kmsiamrole0}
+      KMSIAMRole1: ${kmsiamrole1}
+      KMSIAMRole2: ${kmsiamrole2}

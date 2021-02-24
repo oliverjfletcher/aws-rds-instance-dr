@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: KMS key for RDS snapshots in DR site
+
+Parameters:
+  KMSIAMRole0:
+    Description: IAM Role for KMS key administration
+    Type: String
+  KMSIAMRole1:
+    Description: IAM Role for KMS key usage for onica-rds-dr-backup-copy IAM Role
+    Type: String
+  KMSIAMRole2:
+    Description: IAM Role for KMS key usage for onica-rds-dr-backup-restore IAM Role
+    Type: String
+
+Resources:
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+        Description: RDS instance snapshot KMS key
+        KeyPolicy:
+          Version: '2012-10-17'
+          Id: onica-rds-dr-kms-key
+          Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Join [ "", [ "arn:aws:iam:", ":", !Ref "AWS::AccountId", ":", 'root' ] ]
+            Action: kms:*
+            Resource: '*'
+          - Sid: Allow administration of the key
+            Effect: Allow
+            Principal:
+              AWS: !Join [ "", [ "arn:aws:iam:", ":", !Ref "AWS::AccountId", ":", "role/", !Ref KMSIAMRole0 ] ]
+            Action:
+            - kms:Create*
+            - kms:Describe*
+            - kms:Enable*
+            - kms:List*
+            - kms:Put*
+            - kms:Update*
+            - kms:Revoke*
+            - kms:Disable*
+            - kms:Get*
+            - kms:Delete*
+            - kms:TagResource
+            - kms:UntagResource
+            - kms:ScheduleKeyDeletion
+            - kms:CancelKeyDeletion
+            Resource: '*'
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              AWS: 
+               - !Join [ "", [ "arn:aws:iam:", ":", !Ref "AWS::AccountId", ":", "role/", !Ref KMSIAMRole1 ] ]
+               - !Join [ "", [ "arn:aws:iam:", ":", !Ref "AWS::AccountId", ":", "role/", !Ref KMSIAMRole2 ] ]
+            Action:
+            - kms:Encrypt
+            - kms:Decrypt
+            - kms:ReEncrypt*
+            - kms:GenerateDataKey*
+            - kms:DescribeKey
+            Resource: '*'
+          - Sid: Allow attachment of persistent resources
+            Effect: Allow
+            Principal:
+              AWS: 
+               - !Join [ "", [ "arn:aws:iam:", ":", !Ref "AWS::AccountId", ":", "role/", !Ref KMSIAMRole1 ] ]
+               - !Join [ "", [ "arn:aws:iam:", ":", !Ref "AWS::AccountId", ":", "role/", !Ref KMSIAMRole2 ] ]
+            Action:
+            - kms:CreateGrant
+            - kms:ListGrants
+            - kms:RevokeGrant
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: 'true'
+          
+Outputs:
+    KMSBackupARN:
+      Value: !GetAtt KMSKey.Arn
+      Export: 
+        Name: !Sub '${AWS::StackName}-kms-key-arn'

@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: RDS DR Solution SNS Topics and SNS Subscriptions
+
+Parameters:
+  RDSAvailSNSName:
+    Description: SNS to send RDS instance availability notifications
+    Type: String
+  RDSBackupSNSName:
+    Description: SNS to send RDS instance manual snapshot notifications
+    Type: String
+  RDSSNSEmail:
+    Description: Email to configure for SNS subscriptions
+    Type: String
+
+Resources:
+  RDSAvailabilityNotification:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Ref RDSAvailSNSName
+      TopicName: !Ref RDSAvailSNSName
+
+  RDSBackupNotification:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Ref RDSBackupSNSName
+      TopicName: !Ref RDSBackupSNSName
+
+  RDSAvailabilitySubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref RDSSNSEmail
+      Protocol: email
+      TopicArn: !Ref RDSAvailabilityNotification
+
+  RDSBackupSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref RDSSNSEmail
+      Protocol: email
+      TopicArn: !Ref RDSBackupNotification
+
+Outputs:
+    SNSBackupARN:
+      Value: !Ref RDSBackupNotification
+      Export: 
+        Name: !Sub '${AWS::StackName}-topic-backup-arn'
+    SNSAvailabilityARN:
+      Value: !Ref RDSAvailabilityNotification
+      Export: 
+        Name: !Sub '${AWS::StackName}-topic-availability-arn'
+
+
+

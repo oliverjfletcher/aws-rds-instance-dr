@@ -1,0 +1,66 @@
+service: onica-rds-dr-backup-copy
+provider:
+  name: aws
+  runtime: python3.7
+  role: RDSDRBackupCopyRole
+  timeout: 120
+  memorySize: 512
+  tags:
+    Department: elastic-engineering
+    Description: rds-backup-copy-lambda
+    Environment: dev
+    Workload: onica-rds-dr-solution
+plugins:
+  - serverless-plugin-include-dependencies
+  - serverless-python-requirements
+
+package:
+  exclude:
+    - a/**
+
+functions:
+  RDSDRBackupCopyLambda:
+    handler: handler.lambda_handler
+    name: onica-rds-dr-backup-copy
+    description: This function copies an RDS instance snapshot to a DR region
+    environment:
+      lambda_region: us-west-2
+      primary_region: us-west-2
+      dr_region: us-east-2
+      instances: usw2ddb000,usw2ddb001,usw2ddb002
+      kms_arn: key-arn
+    events:
+      - schedule: cron(00 06 * * ? *)     
+resources:
+  Resources:
+    RDSDRBackupCopyRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: onica-rds-dr-backup-copy
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: customPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "arn:aws:logs:*:*:*"
+                - Effect: Allow
+                  Action:
+                    - rds:AddTagsToResource
+                    - rds:CopyDBSnapshot
+                    - rds:CopyDBClusterSnapshot
+                    - rds:Describe*
+                    - rds:ListTagsForResource
+                  Resource: "*"

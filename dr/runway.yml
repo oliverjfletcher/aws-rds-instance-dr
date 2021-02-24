@@ -1,0 +1,9 @@
+deployments:
+  - name: dr
+    modules:
+      - lambdas/onica-rds-dr-backup-restore.sls
+      - cloudformation/onica-rds-dr-kms.cfn
+    regions:
+      - us-east-2
+
+ignore_git_branch: true

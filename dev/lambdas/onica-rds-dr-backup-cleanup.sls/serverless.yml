@@ -1,0 +1,62 @@
+service: onica-rds-dr-backup-cleanup
+provider:
+  name: aws
+  runtime: python3.7
+  role: RDSDRBackupCleanupRole
+  timeout: 120
+  memorySize: 512
+  tags:
+    Department: elastic-engineering
+    Description: rds-backup-cleanup-lambda
+    Environment: dev
+    Workload: onica-rds-dr-solution
+plugins:
+  - serverless-plugin-include-dependencies
+  - serverless-python-requirements
+
+package:
+  exclude:
+    - a/**
+
+functions:
+  RDSDRBackupCleanupLambda:
+    handler: handler.lambda_handler
+    name: onica-rds-dr-backup-cleanup
+    description: This function deletes RDS instance snapshots that are older than 14 days
+    environment:
+      lambda_region: us-west-2
+      dr_region: us-east-2
+      instances: usw2ddb000,usw2ddb001,usw2ddb002
+    events:
+      - schedule: cron(00 08 * * ? *)
+resources:
+  Resources:
+    RDSDRBackupCleanupRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: onica-rds-dr-backup-cleanup
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: customPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "arn:aws:logs:*:*:*"
+                - Effect: Allow
+                  Action:
+                    - rds:Describe*
+                    - rds:ListTagsForResource
+                    - rds:DeleteDBSnapshot
+                  Resource: "*"

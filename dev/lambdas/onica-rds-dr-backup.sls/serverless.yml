@@ -1,0 +1,64 @@
+service: onica-rds-dr-backup
+provider:
+  name: aws
+  runtime: python3.7
+  role: RDSDRBackupRole
+  timeout: 120
+  memorySize: 512
+  tags:
+    Department: elastic-engineering
+    Description: rds-backup-lambda
+    Environment: dev
+    Workload: onica-rds-dr-solution
+plugins:
+  - serverless-plugin-include-dependencies
+  - serverless-python-requirements
+
+package:
+  exclude:
+    - a/**
+
+functions:
+  RDSDRBackupLambda:
+    handler: handler.lambda_handler
+    name: onica-rds-dr-backup
+    description: This function creates an RDS instance snapshot
+    environment:
+      lambda_region: us-west-2
+      instances: usw2ddb000,usw2ddb001,usw2ddb002
+    events:
+      - schedule: cron(00 05 * * ? *)
+resources:
+  Resources:
+    RDSDRBackupRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: onica-rds-dr-backup
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: customPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "arn:aws:logs:*:*:*"
+                - Effect: Allow
+                  Action:
+                    - rds:AddTagsToResource
+                    - rds:DeleteDBSnapshot
+                    - rds:CreateDBSnapshot
+                    - rds:CreateDBClusterSnapshot
+                    - rds:Describe*
+                    - rds:ListTagsForResource
+                  Resource: "*"

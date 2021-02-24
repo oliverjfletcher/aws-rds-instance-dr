@@ -1,0 +1,20 @@
+namespace: ${namespace}
+stacker_bucket: ${namespace}-${region}
+region: ${region}
+
+sys_path: ./
+
+tags:
+  Department: ${department}
+  Description: ${description}
+  Environment: ${environment}
+  Workload: ${workload}
+
+stacks:
+  - name: ${namespace}-sns-${environment}
+    template_path: cloudformation/sns.yaml
+    variables:
+      RDSAvailSNSName: ${rdsavailsnsname}
+      RDSBackupSNSName: ${rdsbackupsnsname}
+      RDSSNSEmail: ${rdssnsemail}
+

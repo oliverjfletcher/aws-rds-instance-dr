@@ -1,0 +1,242 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "RDSDRBackupCleanupLambdaLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/onica-rds-dr-backup-cleanup"
+      }
+    },
+    "RDSDRBackupCleanupLambdaLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/onica-rds-dr-backup-cleanup/dev/1612686194915-2021-02-07T08:23:14.915Z/onica-rds-dr-backup-cleanup.zip"
+        },
+        "Handler": "handler.lambda_handler",
+        "Runtime": "python3.7",
+        "FunctionName": "onica-rds-dr-backup-cleanup",
+        "MemorySize": 512,
+        "Timeout": 120,
+        "Description": "This function deletes RDS instance snapshots that are older than 14 days",
+        "Tags": [
+          {
+            "Key": "Department",
+            "Value": "elastic-engineering"
+          },
+          {
+            "Key": "Description",
+            "Value": "rds-backup-cleanup-lambda"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Workload",
+            "Value": "onica-rds-dr-solution"
+          }
+        ],
+        "Environment": {
+          "Variables": {
+            "lambda_region": "us-west-2",
+            "dr_region": "us-east-2",
+            "instances": "usw2ddb000,usw2ddb001,usw2ddb002-instance-1,usw2ddb002-instance-1-us-west-2a"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "RDSDRBackupCleanupRole",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "RDSDRBackupCleanupLambdaLogGroup",
+        "RDSDRBackupCleanupRole"
+      ]
+    },
+    "RDSDRBackupCleanupLambdaLambdaVersionhPGS1w8PLFRvlslvgtar4J32TFhsSiKZfXSP9FjQGs": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "RDSDRBackupCleanupLambdaLambdaFunction"
+        },
+        "CodeSha256": "CmKswcEhezpe3lo6mO0M1+gRX7B1VQKEXAlCU0h88os=",
+        "Description": "This function deletes RDS instance snapshots that are older than 14 days"
+      }
+    },
+    "RDSDRBackupCleanupLambdaEventsRuleSchedule1": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "cron(00 08 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "RDSDRBackupCleanupLambdaLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "RDSDRBackupCleanupLambdaSchedule"
+          }
+        ]
+      }
+    },
+    "RDSDRBackupCleanupLambdaLambdaPermissionEventsRuleSchedule1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "RDSDRBackupCleanupLambdaLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "RDSDRBackupCleanupLambdaEventsRuleSchedule1",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "RDSDRBackupCleanupRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "onica-rds-dr-backup-cleanup",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "customPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "rds:Describe*",
+                    "rds:ListTagsForResource",
+                    "rds:DeleteDBSnapshot"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      }
+    },
+    "RDSDRBackupCleanupLambdaLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "RDSDRBackupCleanupLambdaLambdaVersionhPGS1w8PLFRvlslvgtar4J32TFhsSiKZfXSP9FjQGs"
+      }
+    }
+  }
+}

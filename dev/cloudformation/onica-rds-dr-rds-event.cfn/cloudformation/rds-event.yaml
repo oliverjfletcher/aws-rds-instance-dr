@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: RDS DR Solution RDS Event Subscriptions
+
+Parameters:
+  DBInstances:
+    Description: RDS Instances Identifer
+    Type: String
+
+Resources:
+  RDSEventSubAvailability:
+    Type: AWS::RDS::EventSubscription
+    Properties: 
+      Enabled: true
+      EventCategories: 
+        - availability
+      SnsTopicArn: !ImportValue onica-rds-dr-sns-dev-topic-availability-arn
+      SourceIds: !Split [",", !Ref DBInstances]
+      SourceType: 'db-instance'
+
+  RDSEventSubABackup:
+    Type: AWS::RDS::EventSubscription
+    Properties: 
+      Enabled: true
+      EventCategories: 
+        - backup
+      SnsTopicArn: !ImportValue onica-rds-dr-sns-dev-topic-backup-arn
+      SourceIds: !Split [",", !Ref DBInstances]
+      SourceType: 'db-instance'

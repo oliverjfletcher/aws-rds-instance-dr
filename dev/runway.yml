@@ -1,0 +1,12 @@
+deployments:
+  - name: dev
+    modules:
+      - lambdas/onica-rds-dr-backup.sls
+      - lambdas/onica-rds-dr-backup-copy.sls
+      - lambdas/onica-rds-dr-backup-cleanup.sls
+      - cloudformation/onica-rds-dr-sns.cfn
+      - cloudformation/onica-rds-dr-rds-event.cfn
+    regions:
+      - us-west-2
+
+ignore_git_branch: true

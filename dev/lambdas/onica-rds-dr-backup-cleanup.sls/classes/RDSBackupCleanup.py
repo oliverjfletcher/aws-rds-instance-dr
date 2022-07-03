@@ -12,7 +12,11 @@ class RDSBackupCleanup:
             self.my_rds_primary = boto3.client('rds')
             self.my_rds_dr = boto3.client('rds',region_name=dr_region)
             
-    def get_rds_instance_snapshot(self,instances):   
+    def get_rds_instance_snapshot(self,instances):
+        """
+        Check if RDS instance exists and return result
+        Expects RDS instance name(s) as string
+        """
         try:
             result = False
             for instance in instances:
@@ -47,7 +51,11 @@ class RDSBackupCleanup:
         except Exception as e:
             logger.error('Class RDSBackupCleanup. Method get_rds_instance_snapshot failed with error: ' + str(e))
     
-    def delete_rds_snapshot_primary(self,instances,retention_days):          
+    def delete_rds_snapshot_primary(self,instances,retention_days):
+        """
+        Delete RDS instance(s) snapshot based on static retention days located in DR region
+        Expects RDS instance(s) and number of retention days as string
+        """           
         try:
             retention_date = (datetime.datetime.now() - datetime.timedelta(days=retention_days)).strftime('%Y-%m-%d')
             
@@ -76,7 +84,11 @@ class RDSBackupCleanup:
             logger.error('Class RDSBackupCleanup Method delete_rds_snapshot_primary failed with error: ' + str(e))
             
             
-    def delete_rds_snapshot_dr(self,instances,retention_days):          
+    def delete_rds_snapshot_dr(self,instances,retention_days):
+        """
+        Delete RDS instance(s) snapshot based on static retention days located in DR region
+        Expects RDS instance(s) and number of retention days as string
+        """          
         try:
             retention_date = (datetime.datetime.now() - datetime.timedelta(days=retention_days)).strftime('%Y-%m-%d')
             

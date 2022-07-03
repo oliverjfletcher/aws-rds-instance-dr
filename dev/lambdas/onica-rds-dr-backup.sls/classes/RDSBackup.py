@@ -12,7 +12,11 @@ class RDSBackup:
     def __init__(self):
             self.my_rds = boto3.client('rds')
             
-    def get_rds_instance(self,instances):   
+    def get_rds_instance(self,instances):  
+        """
+        Check if RDS instance(s) exist in primary region
+        Expects RDS instance(s) as string
+        """   
         try:
             result = False
             for instance in instances:
@@ -36,7 +40,11 @@ class RDSBackup:
         except Exception as e:
             logger.error('Class RDSBackup. Method get_rds_instance failed with error: ' + str(e))
     
-    def create_rds_snapshot(self, instances):          
+    def create_rds_snapshot(self, instances):
+        """
+        Create RDS instance snapshot
+        Expects RDS instance(s) as string
+        """             
         try:
             for instance in instances:
                 logger.info("Creating RDS instance snapshot for instance " + instance)

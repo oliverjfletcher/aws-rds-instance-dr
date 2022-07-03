@@ -16,7 +16,11 @@ class RDSBackupCopy:
             self.my_rds_dr = boto3.client('rds',region_name=dr_region)
             self.my_account = boto3.client('sts').get_caller_identity().get('Account')
             
-    def get_rds_instance_snapshot(self,instances):   
+    def get_rds_instance_snapshot(self,instances):
+        """
+        Get RDS instance(s) snapshot ARN and return result
+        Expects RDS instance(s) as string
+        """  
         try:
             result = False
             for instance in instances:
@@ -52,6 +56,10 @@ class RDSBackupCopy:
 
 
     def copy_rds_snapshot(self,instances, primary_region, dr_region,kms_arn):
+        """
+        Get RDS instance(s) snapshot from primary region and copy to DR region
+        Expects RDS instance(s), primary & DR region, and KMS Key ARN as string
+        """  
         try:
         
             for instance in instances:
@@ -77,6 +85,10 @@ class RDSBackupCopy:
   
   
     def get_rds_dr_snapshots(self,instances):
+        """
+        Get RDS instance(s) snapshot from DR region to validate copy
+        Expects RDS instance(s) as string
+        """  
         try:      
             for instance in instances:
     

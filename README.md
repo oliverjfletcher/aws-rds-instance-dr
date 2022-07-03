@@ -1,31 +1,43 @@
 # Onica RDS Instance Disaster Recovery
 
-A collection of [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) functions written in the Python 3 programming language, and leveraging the [AWS Boto3 SDK](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html). 
+A collection of [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) functions written in the Python 3 programming language, and leveraging the [AWS Boto3 SDK](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
 
 The AWS Lambda functions backup, copy, restore and cleanup RDS instance snapshots to enable Disaster Recovery for RDS instances. 
 
-The Lambda functions are also accompanied with applicable [CloudFormation](https://docs.aws.amazon.com/cloudformation/index.html), [Runway](https://docs.onica.com/projects/runway/en/release/getting_started.html), [Stacker](https://stacker.readthedocs.io/en/latest/), and [Serverless Framework](https://www.serverless.com/framework/docs/) templates to deploy the services required and enable the monitoring and alerting for the RDS instances and DR process. 
+The Lambda functions are also accompanied with applicable [CloudFormation](https://docs.aws.amazon.com/cloudformation/index.html), [Runway](https://docs.onica.com/projects/runway/en/release/getting_started.html), [Stacker](https://stacker.readthedocs.io/en/latest/), and [Serverless Framework](https://www.serverless.com/framework/docs/) templates to deploy the services required and enable the monitoring and alerting for the RDS instances and DR process.
 
 **Change Log**
 
 |**Version**     |**Changes**             				                                    |
 |----------------|--------------------------------------------------------------------------|
 |v0.01           |Initial commit with baseline code, and documentation                      |
-
+|v0.02           |Adding comments to py and updating package versions                       |
 
 ## Table of Contents
 
-1. [Solution Overview](#solution-overview)
-2. [Architecture](#architecture)
-3. [Lambda Functions](#lambda-functions)
-    1. [RDS Backup](#rds-backup)
-    2. [RDS Backup Copy](#rds-backup-copy)
-    3. [RDS Backup Cleanup](#rds-backup-cleanup)
-    4. [RDS Backup Restore](#rds-backup-restore)
-4. [Key Management Service](#key-management-service)
-5. [Simple Notification Service](#simple-notification-service)
-6. [RDS Event Subscriptions](#rds-event-subscription)
-7. [Deployment](#deployment)
+- [Onica RDS Instance Disaster Recovery](#onica-rds-instance-disaster-recovery)
+  - [Table of Contents](#table-of-contents)
+    - [Solution Overview](#solution-overview)
+    - [Architecture](#architecture)
+    - [AWS Lambda](#aws-lambda)
+      - [RDS Backup](#rds-backup)
+      - [RDS Backup Copy](#rds-backup-copy)
+        - [Environment Variables](#environment-variables)
+      - [RDS Backup Cleanup](#rds-backup-cleanup)
+        - [Environment Variables](#environment-variables-1)
+      - [RDS Backup Restore](#rds-backup-restore)
+        - [Environment Variables](#environment-variables-2)
+    - [Amazon EventBridge](#amazon-eventbridge)
+    - [AWS Key Management Service (KMS)](#aws-key-management-service-kms)
+    - [Amazon Simple Notification Service (SNS)](#amazon-simple-notification-service-sns)
+    - [Amazon RDS Event Subscriptions](#amazon-rds-event-subscriptions)
+    - [Deployment](#deployment)
+      - [Prerequisites](#prerequisites)
+      - [Stacker Environment Variables](#stacker-environment-variables)
+      - [Lambda Functions](#lambda-functions)
+      - [Simple Notification Service](#simple-notification-service)
+      - [RDS Event Subscriptions](#rds-event-subscriptions)
+      - [Key Management Service](#key-management-service)
 
 ### Solution Overview
 
@@ -45,7 +57,7 @@ The below outlines the architecture for the solution that is built on the AWS pl
 
 The RDS Backup function leverages the Boto3 [create_db_snapshot](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.create_db_snapshot) method to create the RDS snapshot.
 
-Each snapshot is created using a naming convention that includes the prefix `lambda-dr-snapshot`, the RDS instance name and the date when the RDS snapshot occurs. This naming convention is used to search for the snapshot when the rds-backup-copy function is run. 
+Each snapshot is created using a naming convention that includes the prefix `lambda-dr-snapshot`, the RDS instance name and the date when the RDS snapshot occurs. This naming convention is used to search for the snapshot when the rds-backup-copy function is run.
 
 The below outlines the environment variable required to be defined within the serverless.yml file.
 
@@ -57,7 +69,7 @@ The below outlines the environment variable required to be defined within the se
 
 #### RDS Backup Copy
 
-The RDS Backup Copy function leverages the boto3 library to copy the RDS instance snapshots created by the RDS Backup Lambda from the primary region S3 Bucket to the DR region S3 bucket. 
+The RDS Backup Copy function leverages the boto3 library to copy the RDS instance snapshots created by the RDS Backup Lambda from the primary region S3 Bucket to the DR region S3 bucket.
 
 This is done by using the [copy_db_snapshot](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.copy_db_snapshot) method from the Boto3 SDK.
 
@@ -78,9 +90,9 @@ This Lambda also requires a number of environment variables to be set within the
 
 #### RDS Backup Cleanup
 
-The RDS Backup Cleanup function leverages the boto3 library to delete the RDS instance snapshots created by the RDS Backup Lambda from the primary region S3 Bucket and the DR region S3 bucket. 
+The RDS Backup Cleanup function leverages the boto3 library to delete the RDS instance snapshots created by the RDS Backup Lambda from the primary region S3 Bucket and the DR region S3 bucket.
 
-This is done by using the [delete_db_snapshot](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.delete_db_snapshot) method from the Boto3 SDK. 
+This is done by using the [delete_db_snapshot](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.delete_db_snapshot) method from the Boto3 SDK.
 
 The RDS snapshots in the primary region are deleted after the RDS Backup Copy function has run, the snapshots that reside in the DR region are retained for the set amount of retention days, then deleted.
 
@@ -117,31 +129,29 @@ There are a number of values for environment variables that are required before 
 |`rds_instance_type`          |The type for the RDS instance being restored                              |
 |`rds_subnet_group`           |The name of the DB Subnet Group the RDS instance will use                 |
 
-
 ![rds-backup-restore-logic](images/rds-backup-restore-logic.png)
 
 ### Amazon EventBridge
 
-The Lambda functions are scheduled using the cron scheduler. This configured using the [AWS Event Bridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/scheduled-events.html) service. The cron expression for the Lambda functions are defined using the Serverless Framework, and is defined in the serverless.yaml file. 
+The Lambda functions are scheduled using the cron scheduler. This configured using the [AWS Event Bridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/scheduled-events.html) service. The cron expression for the Lambda functions are defined using the Serverless Framework, and is defined in the serverless.yaml file.
 
+### AWS Key Management Service (KMS)
 
-### AWS Key Management Service (KMS) 
-
-The Key Management Service is leveraged in the Diaster Recovery region for the [RDS Backup Copy](#rds-backup-copy) Lambda Function. The key that is provisioned using CloudFormation is used to encrypt the RDS snapshot that is created in the DR Region when the [RDS Backup Copy](#rds-backup-copy) Lambda Function is initiated. 
+The Key Management Service is leveraged in the Diaster Recovery region for the [RDS Backup Copy](#rds-backup-copy) Lambda Function. The key that is provisioned using CloudFormation is used to encrypt the RDS snapshot that is created in the DR Region when the [RDS Backup Copy](#rds-backup-copy) Lambda Function is initiated.
 
 The KMS key requires a IAM Role to be defined within the `dev-us-east-2` environment file. The value that needs to be defined is for the `kmsiamrole` variable. This role will be granted administrator access for the KMS key in the DR region, details of the actions can be found in the `kms.yaml` file.
 
 ### Amazon Simple Notification Service (SNS)
 
-SNS Topics and Subscriptions will be deployed using CloudFormation. The SNS Topics will be used to capture RDS events for both the availability and backup categories. 
+SNS Topics and Subscriptions will be deployed using CloudFormation. The SNS Topics will be used to capture RDS events for both the availability and backup categories.
 
 SNS Subscriptions will be provisioned to enable email alerts to be sent to DevOps engineers. Emails will be sent if an outage occurs for the RDS instances, and also when RDS instance snapshots fail.
 
-The SNS subscriptions require an email to be set within the `dev-us-east-2` environment file. The value that needs to be defined is for the `rdssnsemail` variable. 
+The SNS subscriptions require an email to be set within the `dev-us-east-2` environment file. The value that needs to be defined is for the `rdssnsemail` variable.
 
 ### Amazon RDS Event Subscriptions
 
-RDS Event Subscriptions will be deployed with CloudFormation and will enable SNS Topics to subscribe to the availability and backup categories for the RDS instances that are leveraging this solution. 
+RDS Event Subscriptions will be deployed with CloudFormation and will enable SNS Topics to subscribe to the availability and backup categories for the RDS instances that are leveraging this solution.
 
 The RDS Event Subscriptions require a comma delimited list of the RDS instances that should be included. This will be defined within the `dev-us-east-2` environment file. The value that needs to be defined is for the `dbinstances` variable.
 
@@ -155,9 +165,9 @@ The RDS Event Subscriptions require a comma delimited list of the RDS instances 
 
 #### Stacker Environment Variables
 
-Each of the environments that will be deployed will have their own Stacker environment variable files, these will need to be updated before deployment. 
+Each of the environments that will be deployed will have their own Stacker environment variable files, these will need to be updated before deployment.
 
-The variable files are used as input into the CloudFormation templates that will deploy the auxiliary services for the solution, see each of the sections for the auxiliary services for their applicable environment variables. 
+The variable files are used as input into the CloudFormation templates that will deploy the auxiliary services for the solution, see each of the sections for the auxiliary services for their applicable environment variables.
 
 The below outlines the standard variables that are defined for all Stacker environment variable files.
 
@@ -168,7 +178,7 @@ The below outlines the standard variables that are defined for all Stacker envir
 |`region`         |Variable for the region used to deploy the resources to                   |
 |`department`     |Variable for the department used for tagging                              |
 |`description`    |Variable for the description used for tagging                             |
-|`workload`       |Variable for the workload used for tagging                                | 
+|`workload`       |Variable for the workload used for tagging                                |
 
 
 #### Lambda Functions

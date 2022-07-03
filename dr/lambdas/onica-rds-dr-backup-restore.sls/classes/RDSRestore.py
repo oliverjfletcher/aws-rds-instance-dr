@@ -12,7 +12,11 @@ class RDSRestore:
     def __init__(self):
             self.my_rds = boto3.client('rds')
             
-    def get_rds_instance_snapshot(self,rds_instance):   
+    def get_rds_instance_snapshot(self,rds_instance):
+        """
+        Get RDS instance(s) snapshot ARN in DR region
+        Expects RDS instance(s) as string
+        """      
         try:
             result = False
             for instance in rds_instance:
@@ -47,7 +51,12 @@ class RDSRestore:
             logger.error('Class RDSBackupCleanup. Method get_rds_instance_snapshot failed with error: ' + str(e))
 
     
-    def restore_rds_snapshot(self, rds_instance, rds_instance_type, rds_subnet_group, multi_az, rds_public):  
+    def restore_rds_snapshot(self, rds_instance, rds_instance_type, rds_subnet_group, multi_az, rds_public):
+        """
+        Restore RDS instance in DR region based on parameters
+        Expects RDS instance(s) name, instance(s) type, subnet group as string
+        Expects bool to define if Mutli AZ or Public RDS instance
+        """      
         try:
             for instance in rds_instance:
                 
